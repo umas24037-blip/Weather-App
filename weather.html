@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather Application</title>
+    <link
+      rel="icon"
+      href="https://i.pinimg.com/originals/06/c4/f7/06c4f70ec5931e2342e703e8a3f0a253.png"
+    />
+
+    <link rel="stylesheet" href="./output.css" />
+  </head>
+  <body
+    class="min-h-screen bg-linear-to-br from-blue-400 via-sky-300 to-cyan-200 flex items-center justify-center p-4"
+  >
+    <div
+      class="w-full max-w-md bg-white/30 backdrop-blur-lg shadow-2xl rounded-3xl p-6 border border-white/40"
+    >
+      <h1 class="text-3xl font-bold text-center text-white drop-shadow-md mb-6">
+        ⛅Weather Application
+      </h1>
+
+      <div class="flex flex-col gap-4">
+        <input
+          type="text"
+          placeholder="Enter City Name"
+          id="city-name"
+          class="w-full px-4 py-3 rounded-xl outline-none border-white/50 bg-white/70 text-gray-800 placeholder-gray-500 focus:ring-2 focus:ring-blue-500"
+        />
+        <button
+          id="search-btn"
+          class="bg-blue-600 hover:bg-blue-700 transition-all duration-300 text-white font-semibold py-3 rounded-xl shadow-lg text-xl"
+        >
+          Get Weather Details
+        </button>
+      </div>
+
+      <div id="result" class="mt-6 bg-white/40 rounded-2xl p-5 text-center text-red-600 font-semibold text-lg hidden"></div>
+    </div>
+
+    <script src="./weather.js"></script>
+  </body>
+</html>
