@@ -28,6 +28,13 @@ searchBtn.addEventListener("click", async () => {
     );
     // console.log(response);
 
+    if(!response.ok) {
+    resultBox.innerHTML = `
+     <h3>City Not Found... </h3>
+    `;
+    return;
+    }
+
     let data = await response.json();
     console.log(data);
 
