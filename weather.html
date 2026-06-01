@@ -3,41 +3,220 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Weather Application</title>
-    <link
-      rel="icon"
-      href="https://i.pinimg.com/originals/06/c4/f7/06c4f70ec5931e2342e703e8a3f0a253.png"
-    />
-
+    <title>Weather Dashboard</title>
+    <link rel="icon" href="https://i.pinimg.com/originals/06/c4/f7/06c4f70ec5931e2342e703e8a3f0a253.png" />
     <link rel="stylesheet" href="./output.css" />
+    <style>
+      /* Glassmorphism base */
+      .glass { background: rgba(255,255,255,0.18); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.35); }
+      /* Dynamic backgrounds */
+      body.bg-clear   { background: linear-gradient(135deg, #56CCF2, #2F80ED); }
+      body.bg-clouds  { background: linear-gradient(135deg, #757F9A, #D7DDE8); }
+      body.bg-rain    { background: linear-gradient(135deg, #373B44, #4286f4); }
+      body.bg-thunder { background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); }
+      body.bg-snow    { background: linear-gradient(135deg, #e0eafc, #cfdef3); }
+      body.bg-night   { background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); }
+      body.bg-default { background: linear-gradient(135deg, #38bdf8, #818cf8); }
+      /* Autocomplete */
+      #autocomplete-list { position:absolute; z-index:50; width:100%; top:100%; left:0; }
+      #search-wrapper { position: relative; }
+      /* Scrollbar for forecast */
+      .scroll-x::-webkit-scrollbar { height: 4px; }
+      .scroll-x::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.4); border-radius: 4px; }
+    </style>
   </head>
-  <body
-    class="min-h-screen bg-linear-to-br from-blue-400 via-sky-300 to-cyan-200 flex items-center justify-center p-4"
-  >
-    <div
-      class="w-full max-w-md bg-white/30 backdrop-blur-lg shadow-2xl rounded-3xl p-6 border border-white/40"
-    >
-      <h1 class="text-3xl font-bold text-center text-white drop-shadow-md mb-6">
-        ⛅Weather Application
+  <body class="bg-default min-h-screen flex flex-col items-center justify-start p-4 transition-all duration-700">
+
+    <!-- ── HEADER ── -->
+    <div class="w-full max-w-4xl mt-4 mb-6 flex items-center justify-between flex-wrap gap-3">
+      <h1 class="text-2xl font-bold text-white drop-shadow-md flex items-center gap-2">
+        ⛅ Weather Dashboard
       </h1>
 
-      <div class="flex flex-col gap-4">
-        <input
-          type="text"
-          placeholder="Enter City Name"
-          id="city-name"
-          class="w-full px-4 py-3 rounded-xl outline-none border-white/50 bg-white/70 text-gray-800 placeholder-gray-500 focus:ring-2 focus:ring-blue-500"
-        />
-        <button
-          id="search-btn"
-          class="bg-blue-600 hover:bg-blue-700 transition-all duration-300 text-white font-semibold py-3 rounded-xl shadow-lg text-xl"
-        >
-          Get Weather Details
+      <!-- Unit Toggle -->
+      <div class="flex items-center gap-2 glass rounded-full px-4 py-2">
+        <span id="unit-c" class="text-white font-bold cursor-pointer text-sm">°C</span>
+        <div id="unit-toggle" class="w-10 h-5 bg-white/30 rounded-full relative cursor-pointer transition-all">
+          <div id="unit-knob" class="w-4 h-4 bg-white rounded-full absolute top-0.5 left-0.5 transition-all duration-300"></div>
+        </div>
+        <span id="unit-f" class="text-white/60 font-bold cursor-pointer text-sm">°F</span>
+      </div>
+    </div>
+
+    <!-- ── SEARCH BAR ── -->
+    <div class="w-full max-w-4xl mb-6">
+      <div id="search-wrapper" class="flex gap-3">
+        <div class="relative flex-1">
+          <input
+            type="text"
+            id="city-name"
+            placeholder="Search city..."
+            autocomplete="off"
+            class="w-full px-5 py-3 rounded-2xl glass text-white placeholder-white/60 outline-none focus:ring-2 focus:ring-white/50 text-base"
+          />
+          <ul id="autocomplete-list" class="glass rounded-2xl mt-1 overflow-hidden hidden"></ul>
+        </div>
+        <button id="search-btn" class="bg-white/25 hover:bg-white/40 transition-all glass text-white font-semibold px-6 py-3 rounded-2xl shadow-lg text-sm">
+          Search
+        </button>
+        <button id="locate-btn" title="Use my location" class="glass hover:bg-white/30 transition-all text-white px-4 py-3 rounded-2xl text-xl">
+          📍
         </button>
       </div>
-
-      <div id="result" class="mt-6 bg-white/40 rounded-2xl p-5 text-center text-red-600 font-semibold text-lg hidden"></div>
     </div>
+
+    <!-- ── ALERT BANNER (hidden by default) ── -->
+    <div id="alert-banner" class="w-full max-w-4xl mb-4 hidden">
+      <div class="glass rounded-2xl px-5 py-3 text-yellow-200 font-semibold flex items-center gap-3">
+        <span class="text-2xl">⚠️</span>
+        <span id="alert-text">Severe weather alert placeholder</span>
+      </div>
+    </div>
+
+    <!-- ── MAIN GRID ── -->
+    <div id="dashboard" class="w-full max-w-4xl hidden">
+
+      <!-- Row 1: Current Weather (large) + AQI -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+
+        <!-- Current Weather Card -->
+        <div class="glass rounded-3xl p-6 md:col-span-2 flex flex-col justify-between">
+          <div class="flex items-start justify-between">
+            <div>
+              <h2 id="city-display" class="text-3xl font-bold text-white"></h2>
+              <p id="weather-desc" class="text-white/70 mt-1 capitalize"></p>
+              <p id="local-time" class="text-white/50 text-sm mt-1"></p>
+            </div>
+            <img id="weather-icon" src="" alt="" class="w-20 h-20 drop-shadow-lg" />
+          </div>
+          <div class="mt-4 flex items-end gap-6">
+            <h1 id="temp-main" class="text-7xl font-bold text-white leading-none"></h1>
+            <div class="text-white/70 text-sm pb-2 space-y-1">
+              <p>Feels like: <span id="feels-like" class="text-white font-semibold"></span></p>
+              <p>High: <span id="temp-max" class="text-white font-semibold"></span> / Low: <span id="temp-min" class="text-white font-semibold"></span></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- AQI Card -->
+        <div class="glass rounded-3xl p-6 flex flex-col justify-between">
+          <p class="text-white/70 text-sm font-semibold uppercase tracking-wider">Air Quality</p>
+          <div class="text-center my-2">
+            <div id="aqi-value" class="text-5xl font-bold text-white">--</div>
+            <div id="aqi-label" class="mt-2 text-sm font-semibold px-3 py-1 rounded-full inline-block bg-white/20 text-white">--</div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs text-white/70">
+            <div>PM2.5: <span id="pm25" class="text-white">--</span></div>
+            <div>PM10: <span id="pm10" class="text-white">--</span></div>
+            <div>O₃: <span id="o3" class="text-white">--</span></div>
+            <div>NO₂: <span id="no2" class="text-white">--</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2: Stats Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+        <div class="glass rounded-2xl p-4 text-center">
+          <p class="text-white/60 text-xs uppercase tracking-wider mb-1">Humidity</p>
+          <p id="humidity" class="text-2xl font-bold text-white"></p>
+        </div>
+        <div class="glass rounded-2xl p-4 text-center">
+          <p class="text-white/60 text-xs uppercase tracking-wider mb-1">Wind</p>
+          <p id="wind-speed" class="text-2xl font-bold text-white"></p>
+          <p id="wind-dir" class="text-white/50 text-xs mt-1"></p>
+        </div>
+        <div class="glass rounded-2xl p-4 text-center">
+          <p class="text-white/60 text-xs uppercase tracking-wider mb-1">Visibility</p>
+          <p id="visibility" class="text-2xl font-bold text-white"></p>
+        </div>
+        <div class="glass rounded-2xl p-4 text-center">
+          <p class="text-white/60 text-xs uppercase tracking-wider mb-1">Pressure</p>
+          <p id="pressure" class="text-2xl font-bold text-white"></p>
+        </div>
+      </div>
+
+      <!-- Row 3: UV + Sunrise/Sunset + Precipitation -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+        <!-- UV Index -->
+        <div class="glass rounded-2xl p-5">
+          <p class="text-white/60 text-xs uppercase tracking-wider mb-2">UV Index</p>
+          <div class="flex items-center gap-3">
+            <span class="text-4xl">☀️</span>
+            <div>
+              <p id="uv-value" class="text-3xl font-bold text-white">--</p>
+              <p id="uv-label" class="text-white/60 text-sm">--</p>
+            </div>
+          </div>
+          <!-- UV bar -->
+          <div class="mt-3 h-2 rounded-full bg-gradient-to-r from-green-400 via-yellow-400 via-orange-400 to-red-600 relative">
+            <div id="uv-indicator" class="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow" style="left:0%"></div>
+          </div>
+        </div>
+
+        <!-- Sunrise / Sunset -->
+        <div class="glass rounded-2xl p-5">
+          <p class="text-white/60 text-xs uppercase tracking-wider mb-3">Solar</p>
+          <div class="flex justify-around">
+            <div class="text-center">
+              <p class="text-2xl">🌅</p>
+              <p class="text-white/60 text-xs mt-1">Sunrise</p>
+              <p id="sunrise" class="text-white font-semibold text-sm">--</p>
+            </div>
+            <div class="text-center">
+              <p class="text-2xl">🌇</p>
+              <p class="text-white/60 text-xs mt-1">Sunset</p>
+              <p id="sunset" class="text-white font-semibold text-sm">--</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Precipitation -->
+        <div class="glass rounded-2xl p-5">
+          <p class="text-white/60 text-xs uppercase tracking-wider mb-2">Precipitation</p>
+          <div class="flex items-center gap-3">
+            <span class="text-4xl">🌧️</span>
+            <div>
+              <p id="precip-value" class="text-3xl font-bold text-white">--</p>
+              <p class="text-white/60 text-sm">last 1h (mm)</p>
+            </div>
+          </div>
+          <p class="text-white/50 text-xs mt-3">Forecast pop: <span id="precip-pop" class="text-white">--</span></p>
+        </div>
+      </div>
+
+      <!-- Row 4: Hourly Forecast -->
+      <div class="glass rounded-3xl p-5 mb-4">
+        <p class="text-white/70 text-sm font-semibold uppercase tracking-wider mb-4">Hourly Forecast</p>
+        <div id="hourly-forecast" class="flex gap-3 overflow-x-auto scroll-x pb-2"></div>
+      </div>
+
+      <!-- Row 5: 5-Day Forecast -->
+      <div class="glass rounded-3xl p-5 mb-4">
+        <p class="text-white/70 text-sm font-semibold uppercase tracking-wider mb-4">5-Day Forecast</p>
+        <div id="daily-forecast" class="grid grid-cols-5 gap-3"></div>
+      </div>
+
+      <!-- Row 6: Lifestyle Suggestions + Radar Placeholder -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <!-- Lifestyle -->
+        <div class="glass rounded-2xl p-5">
+          <p class="text-white/70 text-sm font-semibold uppercase tracking-wider mb-3">💡 Lifestyle Tips</p>
+          <ul id="lifestyle-tips" class="space-y-2 text-white/80 text-sm list-none"></ul>
+        </div>
+        <!-- Radar placeholder -->
+        <div class="glass rounded-2xl p-5 flex flex-col items-center justify-center text-center">
+          <p class="text-white/70 text-sm font-semibold uppercase tracking-wider mb-2">🗺️ Radar Map</p>
+          <p class="text-white/40 text-xs">Interactive radar integration coming soon.</p>
+          <div class="mt-3 w-full h-24 rounded-xl bg-white/10 flex items-center justify-center text-white/20 text-xs">
+            [ Map Placeholder ]
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── ERROR / LOADING ── -->
+    <div id="status-msg" class="w-full max-w-4xl glass rounded-2xl p-5 text-center text-white font-semibold text-lg hidden"></div>
 
     <script src="./weather.js"></script>
   </body>
